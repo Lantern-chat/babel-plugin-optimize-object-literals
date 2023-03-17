@@ -4,18 +4,13 @@ module.exports = function({ types: t }) {
     visitor: {
       ObjectExpression(path) {
         const { node: parentNode } = path.getStatementParent();
-        if (parentNode.type !== "VariableDeclaration") {
-          return;
-        }
-        if (!parentNode.leadingComments) {
+        if(parentNode.type !== "VariableDeclaration" || !parentNode.leadingComments?.length) {
           return;
         }
         // get the last comment from the leadingComments list
         // and trim it
-        const comment = parentNode.leadingComments[
-          parentNode.leadingComments.length - 1
-        ].value.trim();
-        if (comment !== "@stringify") {
+        const comment = parentNode.leadingComments[parentNode.leadingComments.length - 1];
+        if(comment.value.trim() !== "@stringify") {
           return;
         }
         const obj = convert(path.node, t);
@@ -28,6 +23,7 @@ module.exports = function({ types: t }) {
           .replace(/[\n]/g, "\\n")
           .replace(/[\r]/g, "\\r")
           .replace(/[\t]/g, "\\t");
+
         path.replaceWith(
           t.callExpression(
             t.memberExpression(t.identifier("JSON"), t.identifier("parse")),
@@ -46,7 +42,7 @@ module.exports = function({ types: t }) {
 
 // Copied from https://github.com/uetchy/babel-plugin-transform-object-literals
 function convert(node, t) {
-  if (node.type === "ObjectExpression") {
+  if(node.type === "ObjectExpression") {
     return Object.fromEntries(
       node.properties.map(prop => {
         const key = t.isIdentifier(prop.key) ? prop.key.name : prop.key.value;
@@ -54,7 +50,7 @@ function convert(node, t) {
         return [key, convert(value, t)];
       })
     );
-  } else if (node.type === "ArrayExpression") {
+  } else if(node.type === "ArrayExpression") {
     return node.elements.map(itemNode => {
       return convert(itemNode, t);
     });
